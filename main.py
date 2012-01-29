@@ -3,6 +3,7 @@
 from sys import exit
 from random import randint
 import string
+import rooms
 
 # Map
 # ▓ ▓ ▓ ▓ ▓
@@ -43,45 +44,14 @@ class Mob(object):
         print "%s does not like your tone and has struck you!" % self.name
         return false
 # End of Mob class
-    
-
-# Base room object, for other rooms to inherit from.
-class Room(object):
-    def __init__(self):
-        self.brief = ""
-        self.description = ""
-        self.exits = {}
-        self.room_number = -1
-        
-    def look(self):
-        print self.description
-        print
-        print "Possible Exits:"
-        for k in self.exits:
-            print k
-        
-    def peer(self):
-        print self.brief
-# End of Room class
-
-
-# Starting room, the north exit is locked.
-class OutsideEntry(Room):
-    def __init__(self):
-        self.room_number = 1
-        self.brief = "Outside, almost pitch black."
-        self.description = """You are outside in the rain, you are standing just
-south of a large cathedral.  There appears to be gates
-spanning the perimeter of the cathedral's yard so it
-is doubtful there are any other entrances."""
-        self.exits = {"north":4,"east":2,"west":3}
-# End of OutsideEntry.Room class
 
 # Game object, runs the game.
 class Game(object):
     def __init__(self):
         self.rooms = [
-            OutsideEntry
+            rooms.OutsideEntry, # Room 1
+            rooms.OutdoorEast, # Room 2
+            rooms.OutdoorWest # Room 3
         ]
         self.play()
         
@@ -92,13 +62,27 @@ class Game(object):
             action = list.pop(0)
             self.commands(action, list)
             
-    def commands(self,action,*args):
+    def commands(self,action,args):
         if action == "look":
-            room = self.rooms[player.location-1]()
-            print OutsideEntry().look()
+            self.rooms[player.location-1]().look()
         
         elif action == "peer":
-            print args
+            room = self.rooms[player.location-1]()
+            direction = args[0]
+            if room.check_exit(direction) != False:
+                self.rooms[room.check_exit(direction)-1]().peer()
+            else:
+                print "Sorry, there is nothing to see in that direction."
+
+        elif action == "east" or action == "west" or action == "north" or action == "south":
+            # Player is trying to move, lets see if they are going in a valid direction.
+            room = self.rooms[player.location-1]()
+            if room.check_exit(action) != False:
+                player.location = room.check_exit(action)
+                self.rooms[player.location-1]().look()
+            else:
+                print "Sorry, there is no exit in that direction."
+            
         
         elif action == "exit":
             print "Okay, see you later!"
@@ -115,6 +99,7 @@ exit - exits the game, progress is not saved
 inventory - lists the items currently in your inventory
 use <inventory> - use an item from your inventory
 answer <answer> - answering riddles is how you beat mobs
+<direction> - attempt to travel in the entered direction
             
 Legend:
 <direction> may be north, south, east or west
@@ -123,6 +108,5 @@ Legend:
         else:
             print "I'm sorry, I don't understand, type `help` to get a list of commands."
 # End of Game Class
-OutsideEntry().look()
 player = Player()
 Game()
